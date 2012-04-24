@@ -76,6 +76,16 @@ class ETaggableBehavior extends CActiveRecordBehavior {
 	private $scopeCriteria = null;
 
 	/**
+	 * @var array|CDbCriteria default scope criteria that used as filter to find, load in binding table.
+	 */
+	public $bindingScope = array();
+
+	/**
+	 * @var CDbCriteria|null binding scope CDbCriteria cache
+	 */
+	private $bindingScopeCriteria = null;
+
+	/**
 	 * @var array these values are added on inserting to binding table.
 	 */
 	public $bindingInsertValues = array();
@@ -220,6 +230,24 @@ class ETaggableBehavior extends CActiveRecordBehavior {
 	}
 
 	/**
+	 * Get default binding scope criteria.
+	 * @return CDbCriteria
+	 */
+	public function getBindingScopeCriteria() {
+		if (!$this->bindingScopeCriteria) {
+			$scope = $this->bindingScope;
+
+			if(is_array($this->bindingScope) && !empty($this->bindingScope)){
+				$scope = new CDbCriteria($this->bindingScope);
+			}
+			if($scope instanceof CDbCriteria){
+				$this->bindingScopeCriteria = $scope;
+			}
+		}
+		return $this->bindingScopeCriteria;
+	}
+
+	/**
 	 * Get tags.
 	 * @return array
 	 */
@@ -261,6 +289,10 @@ class ETaggableBehavior extends CActiveRecordBehavior {
 
 			if($criteria){
 				$findCriteria->mergeWith($criteria);
+			}
+
+			if ($this->getBindingScopeCriteria()) {
+				$findCriteria->mergeWith($this->getBindingScopeCriteria());
 			}
 
 			$tags = $builder->createFindCommand(
@@ -454,6 +486,11 @@ class ETaggableBehavior extends CActiveRecordBehavior {
 				$findCriteria->mergeWith($this->getScopeCriteria());
 			}
 
+
+			if ($this->getBindingScopeCriteria()) {
+				$findCriteria->mergeWith($this->getBindingScopeCriteria());
+			}
+
 			$tags = $this->getConnection()->getCommandBuilder()->createFindCommand(
 				$this->tagTable,
 				$findCriteria
@@ -566,6 +603,11 @@ class ETaggableBehavior extends CActiveRecordBehavior {
 					$this->tagBindingTableTagId
 				);
 				$tagsCriteria->group = 't.'.$this->tagTablePk;
+
+
+				if ($this->getBindingScopeCriteria()) {
+					$tagsCriteria->mergeWith($this->getBindingScopeCriteria());
+				}
 			}
 
 			if($criteria!==null)
