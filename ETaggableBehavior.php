@@ -76,6 +76,11 @@ class ETaggableBehavior extends CActiveRecordBehavior {
 	private $scopeCriteria = null;
 
 	/**
+	 * @var array these values are added on inserting to binding table.
+	 */
+	public $bindingInsertValues = array();
+
+	/**
 	 * Get DB connection.
 	 * @return CDbConnection
 	 */
@@ -213,6 +218,7 @@ class ETaggableBehavior extends CActiveRecordBehavior {
 		}
 		return $this->scopeCriteria;
 	}
+
 	/**
 	 * Get tags.
 	 * @return array
@@ -374,12 +380,14 @@ class ETaggableBehavior extends CActiveRecordBehavior {
 					}
 
 					// bind tag to it's model
-					$builder->createInsertCommand(
-						$this->getTagBindingTableName(),
-						array(
+					$values = array(
 							$this->getModelTableFkName() => $this->getOwner()->primaryKey,
 							$this->tagBindingTableTagId => $tagId
-						)
+						) + $this->bindingInsertValues;
+
+					$builder->createInsertCommand(
+						$this->getTagBindingTableName(),
+						$values
 					)->execute();
 				}
 				$this->updateCount(+1);
