@@ -380,11 +380,11 @@ class ETaggableBehavior extends CActiveRecordBehavior {
 				// delete all present tag bindings if record is existing one
 				$this->deleteTags();
 			}
-
+			
 			// add new tag bindings and tags if there are any
 			if(!empty($this->tags)){
 				foreach($this->tags as $tag){
-					if(empty($tag)) return;
+					if(empty($tag)) continue;
 
 					// try to get existing tag
 					$findCriteria = new CDbCriteria(array(
@@ -677,16 +677,22 @@ class ETaggableBehavior extends CActiveRecordBehavior {
 		$this->updateCount(-1);
 
 		$conn = $this->getConnection();
-		$conn->createCommand(
-			sprintf(
-				"DELETE
-                 FROM `%s`
-                 WHERE %s = %d",
-				$this->getTagBindingTableName(),
-				$this->getModelTableFkName(),
-				$this->getOwner()->primaryKey
-			)
-		)->execute();
+
+		$builder = $this->getOwner()->getCommandBuilder();
+		$criteria = new CDbCriteria();
+		$criteria->condition = $this->getModelTableFkName() . " = " . $this->getOwner()->primaryKey;
+		
+		$criteria->mergeWith($this->bindingScopeCriteria);
+
+		$sql="DELETE FROM ".$this->getTagBindingTableName();
+	    
+	    $sql=$builder->applyCondition($sql,$criteria->condition);
+	    $sql = str_replace("et.","",$sql);
+	    $command=$conn->createCommand($sql);
+	    $command->bindValues($criteria->params);
+		$command->execute();
+
+		
 	}
 	/**
 	 * Creates a tag.
